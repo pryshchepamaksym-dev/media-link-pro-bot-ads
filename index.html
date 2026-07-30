@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reklama Adsgram</title>
+    <!-- Oficjalne skrypty Telegrama oraz Adsgram -->
+    <script src="https://telegram.org"></script>
+    <script src="https://adsgram.ai"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            background-color: #1c1c1e; 
+            color: white; 
+            margin: 0; 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container { text-align: center; max-width: 400px; }
+        h3 { font-size: 20px; margin-bottom: 25px; color: #f2f2f7; }
+        button { 
+            padding: 16px 32px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            background-color: #34c759; 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+        }
+        button:active { background-color: #2eaf4f; }
+        #status { margin-top: 20px; color: #eaeaea; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h3>Obejrzyj krótkie wideo, aby odblokować dodatkowe pobranie</h3>
+        <button id="showAdBtn">▶ Otwórz reklamę wideo</button>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand(); // Rozwiń okno Mini App na cały ekran telefonu
+
+        // ID '3114' to oficjalny blok testowy Adsgram (używaj go podczas programowania).
+        // Przed publikacją zmień na swój własny Block ID pobrany z panelu adsgram.ai
+        const AdController = window.Adsgram.init({ blockId: "3114" }); 
+
+        document.getElementById('showAdBtn').addEventListener('click', () => {
+            document.getElementById('status').innerText = "Ładowanie reklamy...";
+            
+            AdController.show().then((result) => {
+                document.getElementById('status').innerText = "Sukces! Zapisywanie nagrody...";
+                
+                // Kluczowy moment: wysyłamy string do bota potwierdzający obejrzenie
+                // Ta metoda automatycznie zamknie też okno Mini App u użytkownika
+                tg.sendData("ad_watched_success"); 
+                
+            }).catch((result) => {
+                document.getElementById('status').innerText = "Musisz obejrzeć reklamę do końca. Spróbuj ponownie.";
+                console.error("Adsgram error:", result);
+            });
+        });
+    </script>
+</body>
+</html>
