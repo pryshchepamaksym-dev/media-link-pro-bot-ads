@@ -43,7 +43,7 @@
 <body>
 
     <div class="container">
-        <h3 id="textMessage">Obejrzyj krótkie wideo, aby odblokować dodatkowe pobranie</h3>
+        <h3 id="textMessage"></h3>
         <button id="showAdBtn">▶ Watch Ad</button>
         <p id="status"></p>
     </div>
@@ -72,6 +72,7 @@
 
     // Wyciągamy parametr startapp
     let groupId = null;
+    alert(tg.initDataUnsafe.start_param);
     if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
         groupId = "-" + tg.initDataUnsafe.start_param;
     }
