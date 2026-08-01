@@ -57,18 +57,9 @@
             font-size: 14px;
         }
     </style>
-</head>
-<body>
-
-<div class="container">
-    <h3 id="textMessage">Loading message...</h3>
-    <button id="showAdBtn">▶ Watch</button>
-    <p id="status"></p>
-</div>
-
-<script>
-    // 1. Słownik tłumaczeń (Musi być na samej górze!)
-    const PAGE_LOCALES = {
+    <script>
+            // 1. Słownik tłumaczeń (Musi być na samej górze!)
+    window.PAGE_LOCALES = {
         "en": {
             "group": "📺 Watch video to boost energy for your group!",
             "private": "📺 Watch video to get Free downloading!",
@@ -85,111 +76,101 @@
             "btn_watch": "▶ Tonton Video"
         }
     };
+    </script>
+</head>
+<body>
 
-    function initializeMiniApp() {
-    const tg = window.Telegram?.WebApp || null;
-    
-    // Domyślne wartości
-    let userName = "Hero";
-    let lang = "en"; // Domyślny język
-    let finalGroupId = null;
-    let isGroupContext = false;
-    let AdController = null;
+<div class="container">
+    <h2 id="textMessage">Loading...</h2>
+    <button id="showAdBtn">Loading...</button>
+    <div id="status"></div>
+</div>
 
-    // 1. Inicjalizacja Telegram
-    if (tg) {
-        tg.ready();
-        tg.expand();
-        const data = tg.initDataUnsafe || {};
-
-        // --- WYKRYWANIE GRUPY ---
-        if (data.chat_type && ['group', 'supergroup'].includes(data.chat_type)) {
-            if (data.start_param) {
-                isGroupContext = true;
-                finalGroupId = "-" + String(data.start_param).trim();
-            }
-        } else if (data.chat && ['group', 'supergroup'].includes(data.chat.type)) {
-            isGroupContext = true;
-            finalGroupId = data.chat.id;
-        }
-
-        // --- DANE UŻYTKOWNIKA ---
-        if (data.user) {
-            if (data.user.first_name) userName = data.user.first_name;
+<script>
+            function runApp() {
+            console.log("=== START APP ===");
             
-            // Bezpieczna zmiana języka TYLKO jeśli istnieje w słowniku
-            if (data.user.language_code) {
-                const userLang = data.user.language_code;
-                // Sprawdź, czy język ISTNIEJE i ma potrzebne klucze
-                if (window.PAGE_LOCALES && PAGE_LOCALES[userLang] && PAGE_LOCALES[userLang].group) {
-                    lang = userLang;
-                } else {
-                    console.log(`Język ${userLang} nieobsługiwany, używam domyślnego: ${lang}`);
+            const tg = window.Telegram?.WebApp;
+            if (!tg) { console.error("Brak Telegram WebAPI"); return; }
+            
+            tg.ready();
+            tg.expand();
+
+            const data = tg.initDataUnsafe || {};
+            let lang = 'en';
+            let isGroup = false;
+            let finalGroupId = null;
+            let userName = "User";
+
+            // A. Wykrywanie języka
+            if (data.user?.language_code && window.PAGE_LOCALES[data.user.language_code]) {
+                lang = data.user.language_code;
+            }
+            if (data.user?.first_name) userName = data.user.first_name;
+
+            // B. Wykrywanie Grupy
+            if (data.chat_type === 'group' || data.chat_type === 'supergroup') {
+                if (data.start_param) {
+                    isGroup = true;
+                    finalGroupId = "-" + data.start_param;
+                    console.log("Grupa wykryta (start_param):", finalGroupId);
                 }
+            } else if (data.chat?.type === 'group' || data.chat?.type === 'supergroup') {
+                isGroup = true;
+                finalGroupId = data.chat.id;
+                console.log("Grupa wykryta (chat object):", finalGroupId);
+            }
+
+            // C. Pobranie tekstów
+            const texts = window.PAGE_LOCALES[lang] || window.PAGE_LOCALES['en'];
+            const msgText = isGroup ? texts.group : texts.private;
+            const btnText = texts.btn_watch;
+
+            console.log("Język:", lang);
+            console.log("Czy grupa:", isGroup);
+            console.log("Tekst do wyświetlenia:", msgText);
+
+            // D. Aktualizacja DOM (Bezpośrednio)
+            const txtEl = document.getElementById('textMessage');
+            const btnEl = document.getElementById('showAdBtn');
+
+            if (txtEl) {
+                txtEl.innerText = msgText;
+                console.log("✅ Tekst zaktualizowany!");
+            } else {
+                console.error("❌ BŁĄD: Element #textMessage nie istnieje w DOM!");
+                // Próba ratunkowa: wypisz wszystkie ID ze strony
+                const allIds = Array.from(document.querySelectorAll('[id]')).map(e => e.id);
+                console.error("Dostępne ID na stronie:", allIds);
+            }
+
+            if (btnEl) {
+                btnEl.innerText = btnText;
+                btnEl.onclick = () => handleAdClick(tg, isGroup, finalGroupId, userName);
+                console.log("✅ Przycisk zaktualizowany!");
+            } else {
+                console.error("❌ BŁĄD: Element #showAdBtn nie istnieje w DOM!");
             }
         }
-    }
 
-    // 2. Inicjalizacja Adsgram
-    if (window.Adsgram) {
-        AdController = window.Adsgram.init({ blockId: "3114" });
-    }
-
-    // 3. Bezpieczna aktualizacja tekstu (z fallbackiem)
-    const textElement = document.getElementById('textMessage');
-    const buttonElement = document.getElementById('showAdBtn');
-    
-    // Pobierz tekst z fallbackiem na angielski, jeśli brakuje tłumaczenia
-    let textToDisplay = "Loading...";
-    let btnToDisplay = "Watch Ad";
-
-    if (window.PAGE_LOCALES && PAGE_LOCALES[lang]) {
-        const locale = PAGE_LOCALES[lang];
-        const key = isGroupContext ? "group" : "private";
-        
-        // Jeśli brakuje tekstu dla kontekstu, spróbuj angielskiego
-        textToDisplay = locale[key] || (PAGE_LOCALES['en'] ? PAGE_LOCALES['en'][key] : "Welcome");
-        btnToDisplay = locale["btn_watch"] || (PAGE_LOCALES['en'] ? PAGE_LOCALES['en']['btn_watch'] : "Watch Ad");
-    }
-
-    if (textElement) {
-        textElement.innerText = textToDisplay;
-        console.log("Tekst zaktualizowany na:", textToDisplay);
-    } else {
-        console.error("ELEMENT textMessage NIE ZNALEZIONY!");
-    }
-
-    if (buttonElement) {
-        buttonElement.innerText = btnToDisplay;
-        
-        buttonElement.addEventListener('click', () => {
-            const statusElement = document.getElementById('status');
-            if (!AdController) {
-                if (statusElement) statusElement.innerText = "Error: Ads not loaded.";
-                return;
-            }
-
-            if (statusElement) statusElement.innerText = "Loading...";
-
-            AdController.show().then(() => {
-                if (statusElement) statusElement.innerText = "Success!";
-                if (tg && tg.sendData) {
-                    const payload = isGroupContext 
-                        ? `ad_watched_success:group:${finalGroupId}:${userName}` 
-                        : "ad_watched_success";
-                    tg.sendData(payload);
-                }
-            }).catch((err) => {
-                if (statusElement) statusElement.innerText = "Error.";
-                console.error(err);
+        function handleAdClick(tg, isGroup, groupId, user) {
+            const status = document.getElementById('status');
+            if (!window.Adsgram) { status.innerText = "Błąd: Adsgram nie załadowany"; return; }
+            
+            const controller = window.Adsgram.init({blockId: "3114"});
+            status.innerText = "Loading ad...";
+            
+            controller.show().then(() => {
+                status.innerText = "Success!";
+                if(isGroup) tg.sendData(`ad_success:group:${groupId}:${user}`);
+                else tg.sendData("ad_success");
+            }).catch(e => {
+                status.innerText = "Error: " + e;
             });
-        });
-    } else {
-        console.error("ELEMENT showAdBtn NIE ZNALEZIONY!");
-    }
-}
+        }
 
-document.addEventListener('DOMContentLoaded', initializeMiniApp);
+        // Uruchomienie NATYCHMIASTOWE (ponieważ skrypt jest na dole body)
+        runApp();
 </script>
 </body>
 </html>
