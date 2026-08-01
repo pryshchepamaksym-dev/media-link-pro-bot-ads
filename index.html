@@ -49,112 +49,112 @@
     </div>
 
 <script>
-    // 1. Słownik tłumaczeń (Musi być na samej górze!)
-    const PAGE_LOCALES = {
-        "en": {
-            "group": "📺 Watch video to boost energy for your group!",
-            "private": "📺 Watch video to get Free downloading!",
-            "btn_watch": "▶ Watch Video"
-        },
-        "ru": {
-            "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
-            "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!",
-            "btn_watch": "▶ Смотреть видео"
-        },
-        "id": {
-            "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
-            "private": "📺 Tonton video untuk mendapatkan unduhan gratis!",
-            "btn_watch": "▶ Tonton Video"
-        }
-    };
+// 1. Słownik tłumaczeń (Musi być na samej górze!)
+const PAGE_LOCALES = {
+    "en": {
+        "group": "📺 Watch video to boost energy for your group!",
+        "private": "📺 Watch video to get Free downloading!",
+        "btn_watch": "▶ Watch Video"
+    },
+    "ru": {
+        "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
+        "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!",
+        "btn_watch": "▶ Смотреть видео"
+    },
+    "id": {
+        "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
+        "private": "📺 Tonton video untuk mendapatkan unduhan gratis!",
+        "btn_watch": "▶ Tonton Video"
+    }
+};
 
-    let tg = null;
-    let groupId = null;
-    let userName = "Hero";
-    let lang = "en";
-    let AdController = null;
+let tg = null;
+let groupId = null;
+let userName = "Hero";
+let lang = "en";
+let AdController = null;
 
-    function initializeMiniApp() {
-        tg = window.Telegram ? window.Telegram.WebApp : null;
+function initializeMiniApp() {
+    tg = window.Telegram ? window.Telegram.WebApp : null;
 
-        if (tg) {
-            tg.ready();
-            tg.expand();
+    if (tg) {
+        tg.ready();
+        tg.expand();
 
-            // --- PROFESJONALNE I NIEZAWODNE WYCIĄGANIE STARTAPP ---
-            try {
-                // Sposób 1: Sprawdzamy oficjalny parametr start_param
-                if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
-                    groupId = "-" + tg.initDataUnsafe.start_param;
-                } 
-                // Sposób 2 (Zabezpieczenie): Jeśli Telegram schował dane w surowym ciągu initData
-                else if (tg.initData) {
-                    const params = new URLSearchParams(tg.initData);
-                    const startParam = params.get('start_param');
-                    if (startParam) {
-                        groupId = "-" + startParam;
-                    }
-                }
-            } catch (e) {
-                console.error("Błąd wyciągania start_param:", e);
-            }
+        // --- PROFESJONALNE I NIEZAWODNE WYCIĄGANIE STARTAPP ---
+        try {
+            if (tg.initDataUnsafe && tg.initDataUnsafe.chat) {
+                const chat = tg.initDataUnsafe.chat;
 
-            // Bezpieczne pobieranie danych użytkownika
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                if (tg.initDataUnsafe.user.first_name) userName = tg.initDataUnsafe.user.first_name;
-                if (tg.initDataUnsafe.user.language_code) {
-                    const userLang = tg.initDataUnsafe.user.language_code;
-                    if (PAGE_LOCALES[userLang]) lang = userLang;
+                // Sprawdź typ czatu dla pewności
+                if (chat.type === 'group' || chat.type === 'supergroup') {
+                    groupId = chat.id; // To jest właściwe ID grupy (zazwyczaj ujemne lub duże dodatnie)
                 }
             }
+            // Scenariusz B: Aplikacja uruchomiona z Private Message przez link startapp
+            else if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+                // Twój oryginalny fallback dla linków z prywatnych wiadomości
+                groupId = "-" + tg.initDataUnsafe.start_param;
+            }
+        } catch (_) {
         }
 
-        // Inicjalizacja bloku reklamowego Adsgram (ID '3114' to blok testowy)
-        if (window.Adsgram) {
-            AdController = window.Adsgram.init({ blockId: "3114" });
-        }
-
-        // AKTUALIZACJA INTERFEJSU NA EKRANIE TELEFONU
-        const textMessage = groupId ? PAGE_LOCALES[lang]["group"] : PAGE_LOCALES[lang]["private"];
-        const textElement = document.getElementById('textMessage');
-        if (textElement) {
-            textElement.innerText = textMessage;
-        }
-
-        const buttonElement = document.getElementById('showAdBtn');
-        if (buttonElement) {
-            buttonElement.innerText = PAGE_LOCALES[lang]["btn_watch"];
+        // Bezpieczne pobieranie danych użytkownika
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            if (tg.initDataUnsafe.user.first_name) userName = tg.initDataUnsafe.user.first_name;
+            if (tg.initDataUnsafe.user.language_code) {
+                const userLang = tg.initDataUnsafe.user.language_code;
+                if (PAGE_LOCALES[userLang]) lang = userLang;
+            }
         }
     }
 
-    // Odpalamy logikę po pełnym załadowaniu drzewa DOM
-    document.addEventListener('DOMContentLoaded', initializeMiniApp);
+    // Inicjalizacja bloku reklamowego Adsgram (ID '3114' to blok testowy)
+    if (window.Adsgram) {
+        AdController = window.Adsgram.init({blockId: "3114"});
+    }
 
-    // Obsługa przycisku oglądania reklamy Adsgram
-    document.getElementById('showAdBtn').addEventListener('click', () => {
-        const statusElement = document.getElementById('status');
-        if (!AdController) {
-            if (statusElement) statusElement.innerText = "Error: Adsgram SDK not loaded.";
-            return;
-        }
+    // AKTUALIZACJA INTERFEJSU NA EKRANIE TELEFONU
+    const textMessage = groupId ? PAGE_LOCALES[lang]["group"] : PAGE_LOCALES[lang]["private"];
+    const textElement = document.getElementById('textMessage');
+    if (textElement) {
+        textElement.innerText = textMessage;
+    }
 
-        if (statusElement) statusElement.innerText = "Loading video ad...";
-        
-        AdController.show().then((result) => {
-            if (statusElement) statusElement.innerText = "Success!";
-            
-            if (tg && tg.sendData) {
-                if (groupId) {
-                    tg.sendData("ad_watched_success:group:" + groupId + ":" + userName);
-                } else {
-                    tg.sendData("ad_watched_success");
-                }
+    const buttonElement = document.getElementById('showAdBtn');
+    if (buttonElement) {
+        buttonElement.innerText = PAGE_LOCALES[lang]["btn_watch"];
+    }
+}
+
+// Odpalamy logikę po pełnym załadowaniu drzewa DOM
+document.addEventListener('DOMContentLoaded', initializeMiniApp);
+
+// Obsługa przycisku oglądania reklamy Adsgram
+document.getElementById('showAdBtn').addEventListener('click', () => {
+    const statusElement = document.getElementById('status');
+    if (!AdController) {
+        if (statusElement) statusElement.innerText = "Error: Adsgram SDK not loaded.";
+        return;
+    }
+
+    if (statusElement) statusElement.innerText = "Loading video ad...";
+
+    AdController.show().then((result) => {
+        if (statusElement) statusElement.innerText = "Success!";
+
+        if (tg && tg.sendData) {
+            if (groupId) {
+                tg.sendData("ad_watched_success:group:" + groupId + ":" + userName);
+            } else {
+                tg.sendData("ad_watched_success");
             }
-        }).catch((result) => {
-            if (statusElement) statusElement.innerText = "Error. Please try again.";
-            console.error("Adsgram error:", result);
-        });
+        }
+    }).catch((result) => {
+        if (statusElement) statusElement.innerText = "Error. Please try again.";
+        console.error("Adsgram error:", result);
     });
+});
 </script>
 </body>
 </html>
