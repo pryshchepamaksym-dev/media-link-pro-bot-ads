@@ -2,156 +2,227 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Group Debug</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad from Adsgram</title>
+    <!-- Oficjalne skrypty Telegrama oraz Adsgram -->
+    <script src="https://telegram.org"></script>
+    <script src="https://adsgram.ai"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            margin: 0;
-            padding: 15px;
-        }
-        h2 { margin-top: 0; font-size: 18px; }
-        .status-box {
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-        }
-        .result-row {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #1c1c1e;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 400px;
+        }
+
+        h3 {
+            font-size: 20px;
+            margin-bottom: 25px;
+            color: #f2f2f7;
+        }
+
+        button {
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #34c759;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s;
+        }
+
+        button:active {
+            background-color: #2eaf4f;
+        }
+
+        #status {
+            margin-top: 20px;
+            color: #eaeaea;
             font-size: 14px;
         }
-        .result-row:last-child { border-bottom: none; }
-        .label { font-weight: bold; color: var(--tg-theme-hint-color, #666); }
-        .value {
-            text-align: right;
-            word-break: break-all;
-            margin-left: 10px;
-            font-family: monospace;
-            font-weight: bold;
-        }
-        .success { color: #2ecc71; }
-        .error { color: #e74c3c; }
-        .warning { color: #f39c12; }
-
-        #main-content { display: none; margin-top: 20px; text-align: center; }
-        .big-id { font-size: 24px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- SEKCJA DIAGNOSTYCZNA -->
-    <div class="status-box">
-        <h2>🔍 Dane z Telegram WebApp</h2>
-        <div id="debug-output">Ładowanie danych...</div>
-    </div>
+<div class="container">
+    <h3 id="textMessage">Loading message...</h3>
+    <button id="showAdBtn">▶ Watch</button>
+    <p id="status"></p>
+</div>
 
-    <!-- SEKCJA GŁÓWNA (ZMIENIA SIĘ W ZALEŻNOŚCI OD WYNIKU) -->
-    <div id="main-content">
-        <h1 id="title-text"></h1>
-        <div id="id-display" class="big-id"></div>
-    </div>
+<script>
+    // 1. Słownik tłumaczeń (Musi być na samej górze!)
+    const PAGE_LOCALES = {
+        "en": {
+            "group": "📺 Watch video to boost energy for your group!",
+            "private": "📺 Watch video to get Free downloading!",
+            "btn_watch": "▶ Watch Video"
+        },
+        "ru": {
+            "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
+            "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!",
+            "btn_watch": "▶ Смотреть видео"
+        },
+        "id": {
+            "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
+            "private": "📺 Tonton video untuk mendapatkan unduhan gratis!",
+            "btn_watch": "▶ Tonton Video"
+        }
+    };
 
-    <script>
-        function initializeMiniApp() {
-            const tg = window.Telegram ? window.Telegram.WebApp : null;
-            const output = document.getElementById('debug-output');
-            const mainContent = document.getElementById('main-content');
-            const titleText = document.getElementById('title-text');
-            const idDisplay = document.getElementById('id-display');
+    function initializeMiniApp() {
+        // 1. Inicjalizacja Telegram WebApp
+        const tg = window.Telegram?.WebApp || null;
 
-            let html = '';
-            let groupId = null;
-            let contextType = 'UNKNOWN';
+        // Domyślne wartości
+        let userName = "Hero";
+        let lang = "en";
+        let finalGroupId = null;
+        let isGroupContext = false;
+        let AdController = null;
 
-            // Helper do dodawania wierszy
-            const addRow = (label, value, className = '') => {
-                const valStr = value === undefined || value === null ? 'BRAK' : String(value);
-                html += `<div class="result-row"><span class="label">${label}</span><span class="value ${className}">${valStr}</span></div>`;
-            };
-
-            if (!tg) {
-                html += `<div class="result-row"><span class="label error">BŁĄD</span><span class="value error">Skrypt Telegram nie załadowany!</span></div>`;
-                output.innerHTML = html;
-                return;
-            }
-
+        // 2. Bezpieczne pobieranie danych z Telegram
+        if (tg) {
             tg.ready();
             tg.expand();
 
-            // 1. Sprawdzenie podstawowych flag
-            addRow('WebApp Inicjalizacja', 'OK', 'success');
-            addRow('initDataUnsafe obecne', !!tg.initDataUnsafe);
+            const data = tg.initDataUnsafe || {};
 
-            if (tg.initDataUnsafe) {
-                // 2. Kluczowe dane
-                addRow('chat_type (typ czatu)', tg.initDataUnsafe.chat_type || 'UNDEFINED', tg.initDataUnsafe.chat_type ? 'success' : 'error');
-                addRow('start_param (parametr start)', tg.initDataUnsafe.start_param || 'UNDEFINED');
-
-                // 3. Szczegóły obiektu Chat (NAJWAŻNIEJSZE)
-                if (tg.initDataUnsafe.chat) {
-                    const chat = tg.initDataUnsafe.chat;
-                    addRow('OBIEKT CHAT', 'ZNaleziony!', 'success');
-                    addRow('ID Czat/Grupy', chat.id, 'success');
-                    addRow('Typ Czat', chat.type);
-                    addRow('Tytuł Czat', chat.title || 'Brak tytułu');
-
-                    groupId = chat.id;
-                    contextType = chat.type; // 'group', 'supergroup', 'private'
-                } else {
-                    addRow('OBIEKT CHAT', 'NIE OBECNY (undefined)', 'error');
-                    addRow('Przyczyna', 'Link kliknięty jako wiadomość, nie przez menu @bot', 'warning');
+            // --- LOGIKA WYKRYWANIA GRUPY (Ulepszona) ---
+            try {
+                // Scenariusz A: Grupa wykryta przez chat_type, ale obiekt chat ukryty (Link bezpośredni)
+                // To jest Twój główny przypadek użycia
+                if (data.chat_type && ['group', 'supergroup'].includes(data.chat_type)) {
+                    if (data.start_param) {
+                        isGroupContext = true;
+                        // Upewnij się, że start_param jest stringiem i dodaj myślnik
+                        finalGroupId = "-" + String(data.start_param).trim();
+                        console.log("Grupa wykryta (tryb linku):", finalGroupId);
+                    } else {
+                        console.warn("Wykryto grupę, ale brak start_param. Sprawdź link.");
+                    }
                 }
-
-                // 4. Dane użytkownika (dla kontekstu)
-                if (tg.initDataUnsafe.user) {
-                    addRow('Użytkownik', `${tg.initDataUnsafe.user.first_name} (ID: ${tg.initDataUnsafe.user.id})`);
+                // Scenariusz B: Pełny obiekt chat (Menu Attachments @bot)
+                else if (data.chat && ['group', 'supergroup'].includes(data.chat.type)) {
+                    isGroupContext = true;
+                    finalGroupId = data.chat.id;
+                    console.log("Grupa wykryta (tryb menu):", finalGroupId);
                 }
-            } else {
-                addRow('initDataUnsafe', 'CAŁKOWICIE BRAK', 'error');
+            } catch (e) {
+                console.error("Błąd podczas parsowania danych grupy:", e);
             }
 
-            // Wyświetl debug
-            output.innerHTML = html;
-
-            // --- LOGIKA BIZNESOWA ---
-            mainContent.style.display = 'block';
-
-            if (groupId && (contextType === 'group' || contextType === 'supergroup' || contextType === 'channel')) {
-                // SUKCES: Jesteśmy w grupie
-                titleText.innerText = "✅ Wykryto Grupę";
-                titleText.style.color = "var(--tg-theme-button-color, #2ecc71)";
-                idDisplay.innerText = "ID: " + groupId;
-                idDisplay.style.color = "var(--tg-theme-button-color, #2ecc71)";
-
-                // TU WYWOŁAJ SWOJĄ FUNKCJĘ ŁADUJĄCĄ DANE GRUPY
-                // loadGroupData(groupId);
-            } else if (tg.initDataUnsafe.start_param) {
-                // Scenariusz: Start z prywatnej wiadomości z parametrem
-                titleText.innerText = "⚠️ Tryb StartApp";
-                titleText.style.color = "var(--tg-theme-hint-color, #f39c12)";
-                const manualId = "-" + tg.initDataUnsafe.start_param;
-                idDisplay.innerText = "ID z parametru: " + manualId;
-            } else {
-                // BŁĄD / PRYWATNA WIADOMOŚĆ
-                titleText.innerText = "❌ Brak kontekstu grupy";
-                titleText.style.color = "var(--tg-theme-button-color, #e74c3c)";
-                idDisplay.innerText = "Widok prywatny (Private Chat)";
-                idDisplay.style.color = "var(--tg-theme-button-color, #e74c3c)";
-
-                // TU LOGIKA DLA WIADOMOŚCI PRYWATNEJ
+            // --- DANE UŻYTKOWNIKA (Bezpieczne) ---
+            // UWAGA: initDataUnsafe jest niezaufany. W produkcji zweryfikuj tg.initData na backendzie!
+            if (data.user) {
+                if (data.user.first_name) {
+                    userName = data.user.first_name;
+                }
+                if (data.user.language_code) {
+                    const userLang = data.user.language_code;
+                    // Sprawdź, czy język istnieje w Twoim słowniku, zanim go ustawisz
+                    if (window.PAGE_LOCALES && window.PAGE_LOCALES[userLang]) {
+                        lang = userLang;
+                    }
+                }
             }
+        } else {
+            console.warn("Telegram WebApp nieznaleziony. Uruchomiono poza Telegramem.");
         }
 
-        // Uruchomienie
-        initializeMiniApp();
-    </script>
+        // 3. Inicjalizacja Adsgram (z ochroną)
+        if (window.Adsgram) {
+            try {
+                // ID '3114' to blok testowy. Zmień na produkcyjny przed wdrożeniem.
+                AdController = window.Adsgram.init({blockId: "3114"});
+                console.log("Adsgram zainicjalizowany.");
+            } catch (err) {
+                console.error("Błąd inicjalizacji Adsgram:", err);
+            }
+        } else {
+            console.warn("SDK Adsgram nie załadowane. Sprawdź tag <script>.");
+        }
+
+        // 4. Aktualizacja Interfejsu (z ochroną przed null)
+        const textElement = document.getElementById('textMessage');
+        if (textElement && window.PAGE_LOCALES && PAGE_LOCALES[lang]) {
+            const messageKey = isGroupContext ? "group" : "private";
+            textElement.innerText = PAGE_LOCALES[lang][messageKey] || "Welcome";
+        }
+
+        const buttonElement = document.getElementById('showAdBtn');
+        if (buttonElement && window.PAGE_LOCALES && PAGE_LOCALES[lang]) {
+            buttonElement.innerText = PAGE_LOCALES[lang]["btn_watch"] || "Watch Ad";
+
+            // 5. Obsługa kliknięcia reklam
+            buttonElement.addEventListener('click', () => {
+                const statusElement = document.getElementById('status');
+
+                if (!AdController) {
+                    if (statusElement) {
+                        statusElement.innerText = "Error: Adsgram not ready.";
+                        statusElement.style.color = "red";
+                    }
+                    console.error("Próba wyświetlenia reklamy bez AdsController.");
+                    return;
+                }
+
+                if (statusElement) {
+                    statusElement.innerText = "Loading video ad...";
+                    statusElement.style.color = "orange";
+                }
+
+                AdController.show()
+                    .then((result) => {
+                        if (statusElement) {
+                            statusElement.innerText = "Success! Reward granted.";
+                            statusElement.style.color = "green";
+                        }
+
+                        // Wysyłanie danych do bota
+                        if (tg && tg.sendData) {
+                            let payload = "ad_watched_success";
+                            if (isGroupContext && finalGroupId) {
+                                payload += `:group:${finalGroupId}:${userName}`;
+                            }
+
+                            tg.sendData(payload);
+                            console.log("Dane wysłane do bota:", payload);
+                        } else {
+                            console.warn("tg.sendData niedostępne (może wymagać custom keyboard).");
+                        }
+                    })
+                    .catch((err) => {
+                        if (statusElement) {
+                            statusElement.innerText = "Error. Please try again.";
+                            statusElement.style.color = "red";
+                        }
+                        console.error("Adsgram error:", err);
+                    });
+            });
+        } else {
+            console.warn("Elementy DOM ('textMessage' lub 'showAdBtn') nie znalezione.");
+        }
+    }
+
+    // Uruchomienie po załadowaniu DOM
+    document.addEventListener('DOMContentLoaded', initializeMiniApp);
+</script>
 </body>
 </html>
