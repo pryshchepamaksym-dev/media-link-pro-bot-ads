@@ -43,35 +43,44 @@
 <body>
 
     <div class="container">
-        <h3>Obejrzyj krótkie wideo, aby odblokować dodatkowe pobranie</h3>
-        <button id="showAdBtn">▶ Otwórz reklamę wideo</button>
+        <h3 id="textMessage">Obejrzyj krótkie wideo, aby odblokować dodatkowe pobranie</h3>
+        <button id="showAdBtn">▶ Watch Ad</button>
         <p id="status"></p>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand(); // Rozwiń okno Mini App na cały ekran telefonu
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
 
-        // ID '3114' to oficjalny blok testowy Adsgram (używaj go podczas programowania).
-        // Przed publikacją zmień na swój własny Block ID pobrany z panelu adsgram.ai
-        const AdController = window.Adsgram.init({ blockId: "40489" }); 
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get('group_id');
 
-        document.getElementById('showAdBtn').addEventListener('click', () => {
-            document.getElementById('status').innerText = "Ładowanie reklamy...";
+    const textMessage = if(groupId) "Watch video to boost energy for your group!" else "Watch video to get Free downloading!"
+    document.getElementById('textMessage').innerText = textMessage;
+    
+    // Pobieramy imię użytkownika z danych Telegrama (jeśli ukryte, używamy 'Anonymous')
+    const userName = tg.initDataUnsafe?.user?.first_name || "Hero";
+
+    const AdController = window.Adsgram.init({ blockId: "3114" }); 
+
+    document.getElementById('showAdBtn').addEventListener('click', () => {
+        document.getElementById('status').innerText = "Loading video ad...";
+        
+        AdController.show().then((result) => {
+            document.getElementById('status').innerText = "Success!";
             
-            AdController.show().then((result) => {
-                document.getElementById('status').innerText = "Sukces! Zapisywanie nagrody...";
-                
-                // Kluczowy moment: wysyłamy string do bota potwierdzający obejrzenie
-                // Ta metoda automatycznie zamknie też okno Mini App u użytkownika
-                tg.sendData("ad_watched_success"); 
-                
-            }).catch((result) => {
-                document.getElementById('status').innerText = "Musisz obejrzeć reklamę do końca. Spróbuj ponownie.";
-                console.error("Adsgram error:", result);
-            });
+            if (groupId) {
+                // PRZEKAZUJEMY: status | ID grupy | Imię użytkownika
+                tg.sendData("ad_watched_success:group:" + groupId + ":" + userName);
+            } else {
+                tg.sendData("ad_watched_success");
+            }
+            
+        }).catch((result) => {
+            document.getElementById('status').innerText = "Error. Please try again.";
         });
-    </script>
+    });
+</script>
 </body>
 </html>
