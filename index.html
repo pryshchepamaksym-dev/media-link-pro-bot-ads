@@ -43,45 +43,30 @@
 <body>
 
     <div class="container">
-        <h3 id="textMessage"></h3>
+        <h3 id="textMessage">Loading message...</h3>
         <button id="showAdBtn">▶ Watch Ad</button>
         <p id="status"></p>
     </div>
 
 <script>
-    const PAGE_LOCALES = {
-    "en": {
-        "group": "📺 Watch video to boost energy for your group!",
-        "private": "📺 Watch video to get Free downloading!"
-    },
-    "ru": {
-        "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
-        "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!"
-    },
-    "id": {
-        "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
-        "private": "📺 Tonton video untuk mendapatkan unduhan gratis!"
-    }
-};
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
+    // Pobieramy język użytkownika z Telegrama (domyślnie angielski 'en')
     const userLang = tg.initDataUnsafe?.user?.language_code || "en";
     const lang = PAGE_LOCALES[userLang] ? userLang : "en";
 
     // Wyciągamy parametr startapp
     let groupId = null;
-    alert(tg.initDataUnsafe.start_param);
     if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
         groupId = "-" + tg.initDataUnsafe.start_param;
     }
 
-    
-    // Pobieramy imię użytkownika z danych Telegrama (jeśli ukryte, używamy 'Anonymous')
     const userName = tg.initDataUnsafe?.user?.first_name || "Hero";
-
     const AdController = window.Adsgram.init({ blockId: "3114" }); 
+
+    // --- KLUCZOWY ELEMENT: USTAWIENIE TEKSTU PRZY ŁADOWANIU STRONY ---
     document.addEventListener('DOMContentLoaded', () => {
         // Poprawny zapis warunku za pomocą operatora trójargumentowego (?) w JS
         const textMessage = groupId 
@@ -94,6 +79,8 @@
             textElement.innerText = textMessage;
         }
     });
+
+    // Obsługa przycisku odpalania reklamy Adsgram (bez zmian)
     document.getElementById('showAdBtn').addEventListener('click', () => {
         document.getElementById('status').innerText = "Loading video ad...";
         
@@ -101,7 +88,6 @@
             document.getElementById('status').innerText = "Success!";
             
             if (groupId) {
-                // PRZEKAZUJEMY: status | ID grupy | Imię użytkownika
                 tg.sendData("ad_watched_success:group:" + groupId + ":" + userName);
             } else {
                 tg.sendData("ad_watched_success");
