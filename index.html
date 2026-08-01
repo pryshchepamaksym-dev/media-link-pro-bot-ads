@@ -1,98 +1,120 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ad from Adsgram</title>
-    <!-- Oficjalne skrypty Telegrama oraz Adsgram -->
-    <script src="https://telegram.org"></script>
-    <script src="https://adsgram.ai"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Media Link Pro Debug</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://adsgram.ai/js/adsgram.min.js"></script>
+
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #1c1c1e;
-            color: white;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .container {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 10px;
             text-align: center;
-            max-width: 400px;
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
         }
 
-        h3 {
-            font-size: 20px;
-            margin-bottom: 25px;
-            color: #f2f2f7;
+        /* STYL PANELU DEBUGOWEGO */
+        #debug-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 35vh; /* Zajmuje 35% ekranu na górze */
+            background-color: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            text-align: left;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-bottom: 2px solid #444;
+            z-index: 9999;
+            opacity: 0.95;
+            white-space: pre-wrap; /* Zawijanie długich linii */
+        }
+
+        /* Kontener główny przesunięty w dół, żeby nie zasłaniał debuga */
+        #app-container {
+            margin-top: 38vh;
+            padding: 20px;
         }
 
         button {
-            padding: 16px 32px;
+            padding: 15px 30px;
             font-size: 16px;
-            font-weight: bold;
-            background-color: #34c759;
-            color: white;
-            border: none;
-            border-radius: 12px;
             cursor: pointer;
+            background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            border-radius: 8px;
             width: 100%;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.2s;
         }
-
-        button:active {
-            background-color: #2eaf4f;
-        }
-
-        #status {
-            margin-top: 20px;
-            color: #eaeaea;
-            font-size: 14px;
-        }
+        #status { margin-top: 15px; font-weight: bold; }
     </style>
+
+    <!-- SŁOWNIK -->
     <script>
-            // 1. Słownik tłumaczeń (Musi być na samej górze!)
-    window.PAGE_LOCALES = {
-        "en": {
-            "group": "📺 Watch video to boost energy for your group!",
-            "private": "📺 Watch video to get Free downloading!",
-            "btn_watch": "▶ Watch Video"
-        },
-        "ru": {
-            "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
-            "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!",
-            "btn_watch": "▶ Смотреть видео"
-        },
-        "id": {
-            "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
-            "private": "📺 Tonton video untuk mendapatkan unduhan gratis!",
-            "btn_watch": "▶ Tonton Video"
-        }
-    };
+        window.PAGE_LOCALES = {
+            'en': {
+                'group': '🎉 Welcome to the Group! Ready for rewards?',
+                'private': '👋 Hello! You are in private mode.',
+                'btn_watch': '📺 Watch Ad & Earn'
+            },
+            'pl': {
+                'group': '🎉 Witaj w Grupie! Gotowy na nagrody?',
+                'private': '👋 Cześć! Jesteś w trybie prywatnym.',
+                'btn_watch': '📺 Oglądaj i Zarabiaj'
+            },
+            'uk': {
+                'group': '🎉 Ласкаво просимо до групи!',
+                'private': '👋 Привіт! Ви в приватному режимі.',
+                'btn_watch': '📺 Дивитися рекламу'
+            },
+            'ru': {
+                'group': '🎉 Добро пожаловать в группу!',
+                'private': '👋 Привет! Вы в приватном режиме.',
+                'btn_watch': '📺 Смотреть рекламу'
+            }
+        };
     </script>
 </head>
 <body>
 
-<div class="container">
-    <h2 id="textMessage">Loading...</h2>
-    <button id="showAdBtn">Loading...</button>
-    <div id="status"></div>
-</div>
+    <!-- 1. PANEL DEBUGOWY (Tutaj trafią wszystkie logi) -->
+    <div id="debug-panel">Inicjalizacja systemu...</div>
 
-<script>
-            function runApp() {
-            console.log("=== START APP ===");
-            
+    <!-- 2. GŁÓWNA APLIKACJA (Przesunięta w dół) -->
+    <div id="app-container">
+        <h2 id="textMessage">Loading...</h2>
+        <button id="showAdBtn">Loading...</button>
+        <div id="status"></div>
+    </div>
+
+    <!-- 3. SKRYPT -->
+    <script>
+        // Funkcja do wypisywania logów na ekran zamiast w konsoli
+        function log(message) {
+            const panel = document.getElementById('debug-panel');
+            const time = new Date().toLocaleTimeString();
+            // Dodaj nową linię na górę listy
+            panel.innerText = `[${time}] ${message}\n` + panel.innerText;
+            console.log(message); // Dodatkowo zostawiamy w konsoli przeglądarki
+        }
+
+        function runApp() {
+            log("=== START APP ===");
+
             const tg = window.Telegram?.WebApp;
-            if (!tg) { console.error("Brak Telegram WebAPI"); return; }
-            
+            if (!tg) {
+                log("BŁĄD: Brak Telegram WebAPI");
+                return;
+            }
+
+            log("Telegram WebApp znaleziony.");
             tg.ready();
             tg.expand();
 
@@ -103,22 +125,36 @@
             let userName = "User";
 
             // A. Wykrywanie języka
-            if (data.user?.language_code && window.PAGE_LOCALES[data.user.language_code]) {
-                lang = data.user.language_code;
+            if (data.user?.language_code) {
+                const userLang = data.user.language_code;
+                if (window.PAGE_LOCALES[userLang]) {
+                    lang = userLang;
+                    log(`Język użytkownika: ${lang}`);
+                } else {
+                    log(`Język ${userLang} nieobsługiwany, używam EN.`);
+                }
             }
             if (data.user?.first_name) userName = data.user.first_name;
 
             // B. Wykrywanie Grupy
+            log(`chat_type: ${data.chat_type || 'undefined'}`);
+            log(`start_param: ${data.start_param || 'undefined'}`);
+            log(`chat object: ${data.chat ? 'OBECNY' : 'NIEOBECNY'}`);
+
             if (data.chat_type === 'group' || data.chat_type === 'supergroup') {
                 if (data.start_param) {
                     isGroup = true;
                     finalGroupId = "-" + data.start_param;
-                    console.log("Grupa wykryta (start_param):", finalGroupId);
+                    log(`✅ GRUPA wykryta (przez start_param): ${finalGroupId}`);
+                } else {
+                    log(`⚠️ Wykryto grupę, ale BRAK start_param!`);
                 }
             } else if (data.chat?.type === 'group' || data.chat?.type === 'supergroup') {
                 isGroup = true;
                 finalGroupId = data.chat.id;
-                console.log("Grupa wykryta (chat object):", finalGroupId);
+                log(`✅ GRUPA wykryta (przez obiekt chat): ${finalGroupId}`);
+            } else {
+                log(`ℹ️ Tryb prywatny (nie wykryto grupy).`);
             }
 
             // C. Pobranie tekstów
@@ -126,51 +162,64 @@
             const msgText = isGroup ? texts.group : texts.private;
             const btnText = texts.btn_watch;
 
-            console.log("Język:", lang);
-            console.log("Czy grupa:", isGroup);
-            console.log("Tekst do wyświetlenia:", msgText);
+            log(`Tekst do wyświetlenia: "${msgText}"`);
 
-            // D. Aktualizacja DOM (Bezpośrednio)
+            // D. Aktualizacja DOM
             const txtEl = document.getElementById('textMessage');
             const btnEl = document.getElementById('showAdBtn');
 
             if (txtEl) {
                 txtEl.innerText = msgText;
-                console.log("✅ Tekst zaktualizowany!");
+                log("✅ Element #textMessage zaktualizowany.");
             } else {
-                console.error("❌ BŁĄD: Element #textMessage nie istnieje w DOM!");
-                // Próba ratunkowa: wypisz wszystkie ID ze strony
-                const allIds = Array.from(document.querySelectorAll('[id]')).map(e => e.id);
-                console.error("Dostępne ID na stronie:", allIds);
+                log("❌ BŁĄD KRYTYCZNY: Element #textMessage NIE ISTNIEJE!");
             }
 
             if (btnEl) {
                 btnEl.innerText = btnText;
                 btnEl.onclick = () => handleAdClick(tg, isGroup, finalGroupId, userName);
-                console.log("✅ Przycisk zaktualizowany!");
+                log("✅ Element #showAdBtn zaktualizowany.");
             } else {
-                console.error("❌ BŁĄD: Element #showAdBtn nie istnieje w DOM!");
+                log("❌ BŁĄD KRYTYCZNY: Element #showAdBtn NIE ISTNIEJE!");
             }
+
+            // Lista wszystkich ID dla pewności
+            const allIds = Array.from(document.querySelectorAll('[id]')).map(e => e.id).join(', ');
+            log(`Dostępne ID na stronie: ${allIds}`);
         }
 
         function handleAdClick(tg, isGroup, groupId, user) {
+            log("Kliknięto przycisk reklamy.");
             const status = document.getElementById('status');
-            if (!window.Adsgram) { status.innerText = "Błąd: Adsgram nie załadowany"; return; }
-            
+
+            if (!window.Adsgram) {
+                log("Błąd: Adsgram SDK nie załadowane.");
+                status.innerText = "Błąd: Adsgram nie działa";
+                return;
+            }
+
             const controller = window.Adsgram.init({blockId: "3114"});
             status.innerText = "Loading ad...";
-            
+            log("Wysyłanie żądania reklamy...");
+
             controller.show().then(() => {
+                log("✅ Reklama wyświetlona pomyślnie!");
                 status.innerText = "Success!";
-                if(isGroup) tg.sendData(`ad_success:group:${groupId}:${user}`);
-                else tg.sendData("ad_success");
+
+                const payload = isGroup
+                    ? `ad_success:group:${groupId}:${user}`
+                    : "ad_success";
+
+                log(`Wysyłanie danych do bota: ${payload}`);
+                tg.sendData(payload);
             }).catch(e => {
+                log(`❌ Błąd reklamy: ${e}`);
                 status.innerText = "Error: " + e;
             });
         }
 
-        // Uruchomienie NATYCHMIASTOWE (ponieważ skrypt jest na dole body)
+        // Uruchomienie
         runApp();
-</script>
+    </script>
 </body>
 </html>
