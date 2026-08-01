@@ -9,51 +9,35 @@
 
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 10px;
-            text-align: center;
-            background-color: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
-        }
-
-        /* STYL PANELU DEBUGOWEGO */
-        #debug-panel {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 35vh; /* Zajmuje 35% ekranu na górze */
-            background-color: #1e1e1e;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 12px;
-            text-align: left;
-            padding: 10px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            border-bottom: 2px solid #444;
-            z-index: 9999;
-            opacity: 0.95;
-            white-space: pre-wrap; /* Zawijanie długich linii */
-        }
-
-        /* Kontener główny przesunięty w dół, żeby nie zasłaniał debuga */
-        #app-container {
-            margin-top: 38vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #1c1c1e;
+            color: white;
+            margin: 0;
             padding: 20px;
+            box-sizing: border-box;
         }
-
+        .container { text-align: center; max-width: 400px; }
+        h3 { font-size: 20px; margin-bottom: 25px; color: #f2f2f7; }
         button {
-            padding: 15px 30px;
+            padding: 16px 32px;
             font-size: 16px;
-            cursor: pointer;
-            background-color: var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-text-color, #fff);
+            font-weight: bold;
+            background-color: #34c759;
+            color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
+            cursor: pointer;
             width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
         }
-        #status { margin-top: 15px; font-weight: bold; }
+        button:active { background-color: #2eaf4f; }
+        #status { margin-top: 20px; color: #eaeaea; font-size: 14px; }
     </style>
 
     <!-- SŁOWNIK -->
@@ -79,11 +63,8 @@
 </head>
 <body>
 
-    <!-- 1. PANEL DEBUGOWY (Tutaj trafią wszystkie logi) -->
-    <div id="debug-panel">Inicjalizacja systemu...</div>
-
     <!-- 2. GŁÓWNA APLIKACJA (Przesunięta w dół) -->
-    <div id="app-container">
+    <div class="container">
         <h2 id="textMessage">Loading...</h2>
         <button id="showAdBtn">Loading...</button>
         <div id="status"></div>
@@ -91,25 +72,12 @@
 
     <!-- 3. SKRYPT -->
     <script>
-        // Funkcja do wypisywania logów na ekran zamiast w konsoli
-        function log(message) {
-            const panel = document.getElementById('debug-panel');
-            const time = new Date().toLocaleTimeString();
-            // Dodaj nową linię na górę listy
-            panel.innerText = `[${time}] ${message}\n` + panel.innerText;
-            console.log(message); // Dodatkowo zostawiamy w konsoli przeglądarki
-        }
-
         function runApp() {
-            log("=== START APP ===");
-
             const tg = window.Telegram?.WebApp;
             if (!tg) {
-                log("BŁĄD: Brak Telegram WebAPI");
                 return;
             }
 
-            log("Telegram WebApp znaleziony.");
             tg.ready();
             tg.expand();
 
@@ -124,32 +92,18 @@
                 const userLang = data.user.language_code;
                 if (window.PAGE_LOCALES[userLang]) {
                     lang = userLang;
-                    log(`Język użytkownika: ${lang}`);
-                } else {
-                    log(`Język ${userLang} nieobsługiwany, używam EN.`);
                 }
             }
             if (data.user?.first_name) userName = data.user.first_name;
-
-            // B. Wykrywanie Grupy
-            log(`chat_type: ${data.chat_type || 'undefined'}`);
-            log(`start_param: ${data.start_param || 'undefined'}`);
-            log(`chat object: ${data.chat ? 'OBECNY' : 'NIEOBECNY'}`);
 
             if (data.chat_type === 'group' || data.chat_type === 'supergroup') {
                 if (data.start_param) {
                     isGroup = true;
                     finalGroupId = "-" + data.start_param;
-                    log(`✅ GRUPA wykryta (przez start_param): ${finalGroupId}`);
-                } else {
-                    log(`⚠️ Wykryto grupę, ale BRAK start_param!`);
                 }
             } else if (data.chat?.type === 'group' || data.chat?.type === 'supergroup') {
                 isGroup = true;
                 finalGroupId = data.chat.id;
-                log(`✅ GRUPA wykryta (przez obiekt chat): ${finalGroupId}`);
-            } else {
-                log(`ℹ️ Tryb prywatny (nie wykryto grupy).`);
             }
 
             // C. Pobranie tekstów
@@ -157,58 +111,40 @@
             const msgText = isGroup ? texts.group : texts.private;
             const btnText = texts.btn_watch;
 
-            log(`Tekst do wyświetlenia: "${msgText}"`);
-
             // D. Aktualizacja DOM
             const txtEl = document.getElementById('textMessage');
             const btnEl = document.getElementById('showAdBtn');
 
             if (txtEl) {
                 txtEl.innerText = msgText;
-                log("✅ Element #textMessage zaktualizowany.");
-            } else {
-                log("❌ BŁĄD KRYTYCZNY: Element #textMessage NIE ISTNIEJE!");
             }
 
             if (btnEl) {
                 btnEl.innerText = btnText;
                 btnEl.onclick = () => handleAdClick(tg, isGroup, finalGroupId, userName);
-                log("✅ Element #showAdBtn zaktualizowany.");
-            } else {
-                log("❌ BŁĄD KRYTYCZNY: Element #showAdBtn NIE ISTNIEJE!");
             }
-
-            // Lista wszystkich ID dla pewności
-            const allIds = Array.from(document.querySelectorAll('[id]')).map(e => e.id).join(', ');
-            log(`Dostępne ID na stronie: ${allIds}`);
         }
 
         function handleAdClick(tg, isGroup, groupId, user) {
-            log("Kliknięto przycisk reklamy.");
             const status = document.getElementById('status');
 
             if (!window.Adsgram) {
-                log("Błąd: Adsgram SDK nie załadowane.");
                 status.innerText = "Błąd: Adsgram nie działa";
                 return;
             }
 
             const controller = window.Adsgram.init({blockId: "3114"});
             status.innerText = "Loading ad...";
-            log("Wysyłanie żądania reklamy...");
 
             controller.show().then(() => {
-                log("✅ Reklama wyświetlona pomyślnie!");
                 status.innerText = "Success!";
 
                 const payload = isGroup
                     ? `ad_success:group:${groupId}:${user}`
                     : "ad_success";
 
-                log(`Wysyłanie danych do bota: ${payload}`);
                 tg.sendData(payload);
             }).catch(e => {
-                log(`❌ Błąd reklamy: ${e}`);
                 status.innerText = "Error: " + e;
             });
         }
