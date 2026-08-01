@@ -54,9 +54,13 @@
     tg.expand();
 
     const urlParams = new URLSearchParams(window.location.search);
-    const groupId = urlParams.get('group_id');
+    let groupId = null;
+    if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+        // Dodajemy z powrotem minus, aby bot rozpoznał poprawny format ID grupy w SQLite
+        groupId = "-" + tg.initDataUnsafe.start_param;
+    }
 
-    const textMessage = if(groupId) "Watch video to boost energy for your group!" else "Watch video to get Free downloading!"
+    let textMessage = if(groupId) "Watch video to boost energy for your group!" else "Watch video to get Free downloading!"
     document.getElementById('textMessage').innerText = textMessage;
     
     // Pobieramy imię użytkownika z danych Telegrama (jeśli ukryte, używamy 'Anonymous')
