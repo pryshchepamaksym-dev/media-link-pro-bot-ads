@@ -49,25 +49,50 @@
     </div>
 
 <script>
+    const PAGE_LOCALES = {
+    "en": {
+        "group": "📺 Watch video to boost energy for your group!",
+        "private": "📺 Watch video to get Free downloading!"
+    },
+    "ru": {
+        "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
+        "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!"
+    },
+    "id": {
+        "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
+        "private": "📺 Tonton video untuk mendapatkan unduhan gratis!"
+    }
+};
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    const urlParams = new URLSearchParams(window.location.search);
+    const userLang = tg.initDataUnsafe?.user?.language_code || "en";
+    const lang = PAGE_LOCALES[userLang] ? userLang : "en";
+
+    // Wyciągamy parametr startapp
     let groupId = null;
     if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
-        // Dodajemy z powrotem minus, aby bot rozpoznał poprawny format ID grupy w SQLite
         groupId = "-" + tg.initDataUnsafe.start_param;
     }
 
-    let textMessage = if(groupId) "Watch video to boost energy for your group!" else "Watch video to get Free downloading!"
-    document.getElementById('textMessage').innerText = textMessage;
     
     // Pobieramy imię użytkownika z danych Telegrama (jeśli ukryte, używamy 'Anonymous')
     const userName = tg.initDataUnsafe?.user?.first_name || "Hero";
 
     const AdController = window.Adsgram.init({ blockId: "3114" }); 
-
+    document.addEventListener('DOMContentLoaded', () => {
+        // Poprawny zapis warunku za pomocą operatora trójargumentowego (?) w JS
+        const textMessage = groupId 
+            ? PAGE_LOCALES[lang]["group"] 
+            : PAGE_LOCALES[lang]["private"];
+            
+        // Wstrzykujemy dynamiczny tekst do Twojego elementu HTML o id='textMessage'
+        const textElement = document.getElementById('textMessage');
+        if (textElement) {
+            textElement.innerText = textMessage;
+        }
+    });
     document.getElementById('showAdBtn').addEventListener('click', () => {
         document.getElementById('status').innerText = "Loading video ad...";
         
