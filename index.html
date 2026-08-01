@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reklama Adsgram</title>
+    <title>Ad from Adsgram</title>
     <!-- Oficjalne skrypty Telegrama oraz Adsgram -->
     <script src="https://telegram.org"></script>
     <script src="https://adsgram.ai"></script>
@@ -49,66 +49,82 @@
     </div>
 
 <script>
+    // Słownik tłumaczeń (musi być na samej górze!)
     const PAGE_LOCALES = {
-    "en": {
-        "group": "📺 Watch video to boost energy for your group!",
-        "private": "📺 Watch video to get Free downloading!"
-    },
-    "ru": {
-        "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
-        "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!"
-    },
-    "id": {
-        "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
-        "private": "📺 Tonton video untuk mendapatkan unduhan gratis!"
-    }
-};
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+        "en": {
+            "group": "📺 Watch video to boost energy for your group!",
+            "private": "📺 Watch video to get Free downloading!"
+        },
+        "ru": {
+            "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
+            "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!"
+        },
+        "id": {
+            "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
+            "private": "📺 Tonton video untuk mendapatkan unduhan gratis!"
+        }
+    };
 
-    // Pobieramy język użytkownika z Telegrama (domyślnie angielski 'en')
-    const userLang = tg.initDataUnsafe?.user?.language_code || "en";
+    // Oficjalne i bezpieczne przypisanie obiektu Telegram Web App
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+
+    if (tg) {
+        tg.ready();
+        tg.expand();
+    }
+
+    // Bezpieczne wyciąganie języka (domyślnie 'en')
+    const userLang = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.language_code : "en";
     const lang = PAGE_LOCALES[userLang] ? userLang : "en";
 
-    // Wyciągamy parametr startapp
+    // Bezpieczne wyciąganie parametru startapp (ID grupy)
     let groupId = null;
-    if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
         groupId = "-" + tg.initDataUnsafe.start_param;
     }
 
-    const userName = tg.initDataUnsafe?.user?.first_name || "Hero";
-    const AdController = window.Adsgram.init({ blockId: "3114" }); 
+    // Bezpieczne wyciąganie imienia użytkownika
+    const userName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.first_name : "Hero";
 
-    // --- KLUCZOWY ELEMENT: USTAWIENIE TEKSTU PRZY ŁADOWANIU STRONY ---
-    document.addEventListener('DOMContentLoaded', () => {
-        // Poprawny zapis warunku za pomocą operatora trójargumentowego (?) w JS
-        const textMessage = groupId 
-            ? PAGE_LOCALES[lang]["group"] 
-            : PAGE_LOCALES[lang]["private"];
-            
-        // Wstrzykujemy dynamiczny tekst do Twojego elementu HTML o id='textMessage'
+    // Inicjalizacja Adsgram (ID '3114' to oficjalny blok testowy)
+    const AdController = window.Adsgram ? window.Adsgram.init({ blockId: "3114" }) : null;
+
+    // --- POPRAWIONA I STABILNA FUNKCJA AKTUALIZACJI TEKSTU ---
+    function updateMessage() {
+        const textMessage = groupId ? PAGE_LOCALES[lang]["group"] : PAGE_LOCALES[lang]["private"];
         const textElement = document.getElementById('textMessage');
         if (textElement) {
             textElement.innerText = textMessage;
         }
-    });
+    }
 
-    // Obsługa przycisku odpalania reklamy Adsgram (bez zmian)
+    // Uruchamiamy od razu po załadowaniu drzewa DOM, aby uniknąć błędów kolejności ładowania skryptów
+    document.addEventListener('DOMContentLoaded', updateMessage);
+
+    // Obsługa przycisku reklamy Adsgram
     document.getElementById('showAdBtn').addEventListener('click', () => {
-        document.getElementById('status').innerText = "Loading video ad...";
+        const statusElement = document.getElementById('status');
+        if (!AdController) {
+            if (statusElement) statusElement.innerText = "Error: Adsgram SDK not loaded.";
+            return;
+        }
+
+        if (statusElement) statusElement.innerText = "Loading video ad...";
         
         AdController.show().then((result) => {
-            document.getElementById('status').innerText = "Success!";
+            if (statusElement) statusElement.innerText = "Success!";
             
-            if (groupId) {
-                tg.sendData("ad_watched_success:group:" + groupId + ":" + userName);
-            } else {
-                tg.sendData("ad_watched_success");
+            // Wysyłamy dane z powrotem do bota (tylko jeśli działamy wewnątrz Telegrama)
+            if (tg && tg.sendData) {
+                if (groupId) {
+                    tg.sendData("ad_watched_success:group:" + groupId + ":" + userName);
+                } else {
+                    tg.sendData("ad_watched_success");
+                }
             }
-            
         }).catch((result) => {
-            document.getElementById('status').innerText = "Error. Please try again.";
+            if (statusElement) statusElement.innerText = "Error. Please try again.";
+            console.error("Adsgram error:", result);
         });
     });
 </script>
