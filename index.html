@@ -75,39 +75,60 @@ let lang = "en";
 let AdController = null;
 
 function initializeMiniApp() {
-    tg = window.Telegram ? window.Telegram.WebApp : null;
-
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    
     if (tg) {
         tg.ready();
         tg.expand();
 
-        // --- PROFESJONALNE I NIEZAWODNE WYCIĄGANIE STARTAPP ---
-        try {
-            if (tg.initDataUnsafe && tg.initDataUnsafe.chat) {
-                const chat = tg.initDataUnsafe.chat;
+        // --- DIAGNOSTYKA ---
+        const debugInfo = document.createElement('div');
+        debugInfo.style.cssText = "position:fixed; top:0; left:0; width:100%; background:#000; color:#0f0; font-size:10px; z-index:9999; opacity:0.8;";
+        document.body.appendChild(debugInfo);
 
-                // Sprawdź typ czatu dla pewności
-                if (chat.type === 'group' || chat.type === 'supergroup') {
-                    groupId = chat.id; // To jest właściwe ID grupy (zazwyczaj ujemne lub duże dodatnie)
+        const log = (msg) => {
+            debugInfo.innerHTML += msg + "<br>";
+            console.log(msg);
+        };
+
+        log("Inicjalizacja...");
+        log("initDataUnsafe obecne: " + !!tg.initDataUnsafe);
+
+        if (tg.initDataUnsafe) {
+            log("Typ czatu (chat_type): " + (tg.initDataUnsafe.chat_type || "BRAK"));
+            log("Start Param: " + (tg.initDataUnsafe.start_param || "BRAK"));
+            
+            if (tg.initDataUnsafe.chat) {
+                log("OBIEKT CHAT ZNALEZIONY!");
+                log("ID Grupy: " + tg.initDataUnsafe.chat.id);
+                log("Typ: " + tg.initDataUnsafe.chat.type);
+                
+                // SUKCES - To jest grupa
+                loadGroupContent(tg.initDataUnsafe.chat.id);
+            } else {
+                log("OBIEKT CHAT NIE OBECNY (undefined)");
+                log("To oznacza, że appka NIE została otwarta przez Menu Attachments.");
+                
+                if (tg.initDataUnsafe.start_param) {
+                    log("Wykryto start_param: " + tg.initDataUnsafe.start_param);
+                    // Scenariusz: Link z prywatnej wiadomości ?startapp=ID
+                    loadGroupContent("-" + tg.initDataUnsafe.start_param);
+                } else {
+                    log("Brak chat i brak start_param. Użytkownik w Private Message lub link bez parametrów.");
+                    loadPrivateContent();
                 }
-            }
-            // Scenariusz B: Aplikacja uruchomiona z Private Message przez link startapp
-            else if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
-                // Twój oryginalny fallback dla linków z prywatnych wiadomości
-                groupId = "-" + tg.initDataUnsafe.start_param;
-            }
-        } catch (_) {
-        }
-
-        // Bezpieczne pobieranie danych użytkownika
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            if (tg.initDataUnsafe.user.first_name) userName = tg.initDataUnsafe.user.first_name;
-            if (tg.initDataUnsafe.user.language_code) {
-                const userLang = tg.initDataUnsafe.user.language_code;
-                if (PAGE_LOCALES[userLang]) lang = userLang;
             }
         }
     }
+}
+
+function loadGroupContent(id) {
+    document.body.innerHTML = `<h1 style="color:green">WIDOK GRUPY<br>ID: ${id}</h1>`;
+}
+
+function loadPrivateContent() {
+    document.body.innerHTML = `<h1 style="color:red">WIDOK PRYWATNY<br>(Brak danych grupy)</h1>`;
+}
 
     // Inicjalizacja bloku reklamowego Adsgram (ID '3114' to blok testowy)
     if (window.Adsgram) {
