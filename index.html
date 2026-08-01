@@ -44,64 +44,90 @@
 
     <div class="container">
         <h3 id="textMessage">Loading message...</h3>
-        <button id="showAdBtn">▶ Watch Ad</button>
+        <button id="showAdBtn">▶ Watch</button>
         <p id="status"></p>
     </div>
 
 <script>
-    // Słownik tłumaczeń (musi być na samej górze!)
+    // 1. Słownik tłumaczeń (Musi być na samej górze!)
     const PAGE_LOCALES = {
         "en": {
             "group": "📺 Watch video to boost energy for your group!",
-            "private": "📺 Watch video to get Free downloading!"
+            "private": "📺 Watch video to get Free downloading!",
+            "showAdBtn": "▶ Watch"
         },
         "ru": {
             "group": "📺 Посмотрите видео, чтобы зарядить бота для группы!",
-            "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!"
+            "private": "📺 Посмотрите видео, чтобы получить бесплатное скачивание!",
+            "showAdBtn": "▶ Смотреть"
         },
         "id": {
             "group": "📺 Tonton video untuk mengisi ulang daya bot grup Anda!",
-            "private": "📺 Tonton video untuk mendapatkan unduhan gratis!"
+            "private": "📺 Tonton video untuk mendapatkan unduhan gratis!",
+            "showAdBtn": "▶ Tonton"
         }
     };
 
-    // Oficjalne i bezpieczne przypisanie obiektu Telegram Web App
-    const tg = window.Telegram ? window.Telegram.WebApp : null;
-
-    if (tg) {
-        tg.ready();
-        tg.expand();
-    }
-
-    // Bezpieczne wyciąganie języka (domyślnie 'en')
-    const userLang = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.language_code : "en";
-    const lang = PAGE_LOCALES[userLang] ? userLang : "en";
-
-    // Bezpieczne wyciąganie parametru startapp (ID grupy)
+    // Globalne zmienne, które zostaną uzupełnione po załadowaniu strony
+    let tg = null;
     let groupId = null;
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
-        groupId = "-" + tg.initDataUnsafe.start_param;
-    }
+    let userName = "Hero";
+    let lang = "en";
+    let AdController = null;
 
-    // Bezpieczne wyciąganie imienia użytkownika
-    const userName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.first_name : "Hero";
+    // --- KLUCZOWA FUNKCJA: Odpala się dopiero gdy cała strona i skrypty są gotowe ---
+    function initializeMiniApp() {
+        // Pobieramy obiekt Telegrama
+        tg = window.Telegram ? window.Telegram.WebApp : null;
 
-    // Inicjalizacja Adsgram (ID '3114' to oficjalny blok testowy)
-    const AdController = window.Adsgram ? window.Adsgram.init({ blockId: "3114" }) : null;
+        if (tg) {
+            tg.ready();
+            tg.expand();
 
-    // --- POPRAWIONA I STABILNA FUNKCJA AKTUALIZACJI TEKSTU ---
-    function updateMessage() {
+            // DOPIERO TUTAJ, PO INICJALIZACJI, BEZPIECZNIE ODCZYTUJEMY DANE:
+            if (tg.initDataUnsafe) {
+                // Odczytujemy start_param (czyli to, co przesłał link ?startapp=)
+                if (tg.initDataUnsafe.start_param) {
+                    groupId = "-" + tg.initDataUnsafe.start_param;
+                }
+                
+                // Odczytujemy imię użytkownika
+                if (tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) {
+                    userName = tg.initDataUnsafe.user.first_name;
+                }
+                
+                // Odczytujemy język
+                if (tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code) {
+                    const userLang = tg.initDataUnsafe.user.language_code;
+                    if (PAGE_LOCALES[userLang]) {
+                        lang = userLang;
+                    }
+                }
+            }
+        }
+
+        // Inicjalizujemy Adsgram (ID '3114' to oficjalny blok testowy)
+        if (window.Adsgram) {
+            AdController = window.Adsgram.init({ blockId: "3114" });
+        }
+
+        // USTAWIAMY TEKST NA EKRANIE (Teraz groupId na 100% będzie już znane)
         const textMessage = groupId ? PAGE_LOCALES[lang]["group"] : PAGE_LOCALES[lang]["private"];
         const textElement = document.getElementById('textMessage');
         if (textElement) {
             textElement.innerText = textMessage;
         }
+        const showAdBtnMessage = PAGE_LOCALES[lang]["showAdBtn"];
+        const showAdBtn = document.getElementById('showAdBtn');
+        if (showAdBtn) {
+            showAdBtn.innerText = watchBtnMessage;
+        }
     }
 
-    // Uruchamiamy od razu po załadowaniu drzewa DOM, aby uniknąć błędów kolejności ładowania skryptów
-    document.addEventListener('DOMContentLoaded', updateMessage);
+    // Wymuszamy, aby cała logika wykonała się DOPIERO PO ZAŁADOWANIU STRONY
+    document.addEventListener('DOMContentLoaded', initializeMiniApp);
 
-    // Obsługa przycisku reklamy Adsgram
+    // Obsługa przycisku oglądania reklamy Adsgram
     document.getElementById('showAdBtn').addEventListener('click', () => {
         const statusElement = document.getElementById('status');
         if (!AdController) {
@@ -114,7 +140,7 @@
         AdController.show().then((result) => {
             if (statusElement) statusElement.innerText = "Success!";
             
-            // Wysyłamy dane z powrotem do bota (tylko jeśli działamy wewnątrz Telegrama)
+            // Przesyłamy bezpieczne dane z powrotem do bota przez bezpieczne API Telegrama
             if (tg && tg.sendData) {
                 if (groupId) {
                     tg.sendData("ad_watched_success:group:" + groupId + ":" + userName);
